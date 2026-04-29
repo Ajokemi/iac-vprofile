@@ -1,66 +1,79 @@
 name: "Vprofile IAC"
- 
+
 on:
   push:
     branches:
-      - stage
-    paths:
-      - terraform/**
+      - main
   pull_request:
     branches:
       - main
-    paths:
-      - terraform/**
 
 permissions:
-  id-token: write   # required to request the OIDC token
-  contents: read    # required to checkout the repo
-
-env:
-  AWS_ROLE_ARN:    ${{ secrets.AWS_ROLE_ARN }}
-  AWS_REGION:      ${{ secrets.AWS_REGION }}
-  BUCKET_TF_STATE: ${{ secrets.BUCKET_TF_STATE }}
+  contents: read
+  pull-requests: write
 
 jobs:
   terraform:
-    name: "Apply Terraform code changes"
+    name: "Terraform"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: ./terraform
     steps:
-      # ... we build the steps below
-
- - name: Checkout source code
+      - name: Checkout
         uses: actions/checkout@v4
- 
-      - name: Configure AWS credentials via OIDC
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
- 
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
 
-  - name: Terraform init
+      - name: Terraform Init
         id: init
-        run: terraform init -backend-config="bucket=$BUCKET_TF_STATE"
- 
-      - name: Terraform format check
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="region=${{ secrets.TF_STATE_REGION }}"
+        working-directory: ./terraform
+
+      - name: Terraform Format
         id: fmt
         run: terraform fmt -check
- 
-      - name: Terraform validate
+        working-directory: ./terraform
+        continue-on-error: true
+
+      - name: Terraform Validate
         id: validate
         run: terraform validate
+        working-directory: ./terraform
 
-    - name: Terraform plan
+      - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false -out planfile
+        run: terraform plan -no-color
+        working-directory: ./terraform
         continue-on-error: true
- 
-      - name: Terraform plan status
+
+      - name: Update Pull Request
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Validate 🖌 \`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️ \`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
+            #### Terraform Validation 📋 \`${{ steps.validate.outcome }}\`
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
