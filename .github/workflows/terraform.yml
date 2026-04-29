@@ -8,8 +8,9 @@ on:
       - 'terraform/**'
 
 permissions:
-  contents: read
-  pull-requests: write
+  id-token: write # Required for requesting the JWT (OIDC)
+  contents: read  # Required for actions/checkout
+  pull-requests: write # Required to post comments
 
 jobs:
   terraform:
@@ -18,14 +19,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::541673202339:role/github-actions-role
+          aws-region: us-east-1
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.5.0"
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="bucket=vprofile-tfstate-ajoke-2026-541673202339-us-east-1-an" -backend-config="region=us-east-1"
         working-directory: ./terraform
-        env:
-          TF_CLI_ARGS_init: -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
-          
+
+      - name: Terraform Plan
+        run: terraform plan -no-color
+        working-directory: ./terraform
