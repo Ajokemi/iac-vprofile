@@ -31,9 +31,9 @@ jobs:
           terraform_version: "1.5.0"
 
       - name: Terraform Init
-        run: terraform init -backend-config="bucket=vprofile-tfstate-ajoke-2026-541673202339-us-east-1-an" -backend-config="region=us-east-1"
+        run: terraform init -upgrade -backend-config="bucket=vprofile-tfstate-ajoke-2026-541673202339-us-east-1-an" -backend-config="region=us-east-1"
         working-directory: ./terraform
-
+        
       - name: Terraform Plan
         run: terraform plan -no-color
         working-directory: ./terraform
