@@ -1,15 +1,16 @@
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.31"
+  version = "20.37.2"
 
-  cluster = {
-    name                                 = local.cluster_name
-    version                              = "1.33"
-    vpc_id                               = module.vpc.vpc_id
-    subnet_ids                           = module.vpc.private_subnets
-    cluster_endpoint_public_access       = true
-    enable_cluster_creator_admin_permissions = true
-  }
+  # Cluster configuration (flat arguments for this module version)
+  cluster_name    = local.cluster_name
+  cluster_version = "1.33"
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  cluster_endpoint_public_access              = true
+  enable_cluster_creator_admin_permissions    = true
 
   eks_managed_node_group_defaults = {
     ami_type = "AL2023_x86_64_STANDARD"
