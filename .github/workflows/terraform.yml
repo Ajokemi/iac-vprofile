@@ -37,3 +37,8 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -no-color
         working-directory: ./terraform
+        
+      - name: Terraform Apply
+        id: apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false -parallelism=1 planfile
