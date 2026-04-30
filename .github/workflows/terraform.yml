@@ -1,7 +1,12 @@
-name: "Terraform CI/CD"
+name: "Vprofile IAC"
 
 on:
   pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  push:
     branches:
       - main
     paths:
@@ -17,16 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v4.1.0
         with:
           role-to-assume: arn:aws:iam::541673202339:role/github-actions-role
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v3.1.0
         with:
           terraform_version: "1.5.0"
 
@@ -35,10 +40,12 @@ jobs:
         working-directory: ./terraform
         
       - name: Terraform Plan
-        run: terraform plan -no-color
+        run: terraform plan -no-color -out=planfile
         working-directory: ./terraform
         
       - name: Terraform Apply
         id: apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false -parallelism=1 planfile
+        working-directory: ./terraform
+      
