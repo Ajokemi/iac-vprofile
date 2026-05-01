@@ -25,7 +25,6 @@ Pipeline Workflow Logic
 Trigger: The pipeline is initiated automatically on every push or pull_request to the main branch.
 
 Job Execution:
-
 Checkout: Securely clones the repository.
 
 Setup: Installs the JDK 11 runtime.
